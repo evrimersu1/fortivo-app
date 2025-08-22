@@ -13,19 +13,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
- title: 'Fortivo',
-  description: 'AI trainer that adapts to your energy, schedule, and injuries.',
-  manifest: '/manifest.json',
-  themeColor: '#0B0B0C',
+  title: "Fortivo",
+  description: "AI trainer that adapts to your energy, schedule, and injuries.",
+  manifest: "/manifest.json",
+  themeColor: "#0B0B0C",
   icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png' // ideally use a dedicated apple-touch-icon
-  }
-}
+    icon: "/icon-192.png",
+    apple: "/icon-192.png", // ideally use a dedicated apple-touch-icon
+  },
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+    >
       <head>
         {/* iOS PWA tuning */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -34,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Optional: maskable icon for Android */}
         <link rel="icon" href="/icon-192.png" />
       </head>
-      <body>{children}</body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
