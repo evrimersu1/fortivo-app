@@ -1,45 +1,58 @@
-// app/install-button.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 
+function getIsStandalone() {
+  if (typeof window === "undefined") return false;
+  // Standard PWA check
+  if (window.matchMedia?.("(display-mode: standalone)").matches) return true;
+  // iOS legacy
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((window as any).navigator?.standalone === true) return true;
+  return false;
+}
+
+function getIsIOSWebKit() {
+  if (typeof navigator === "undefined") return false;
+
+  const ua = navigator.userAgent || "";
+  const platform = (navigator as unknown as { platform?: string }).platform || "";
+
+  const isiPhoneLike = /iphone|ipod/i.test(ua);
+  const isiPadLikeUA = /ipad/i.test(ua);
+  const isiPadLikeDesktopUA =
+    /macintosh/i.test(ua) && "maxTouchPoints" in navigator && (navigator as unknown as { maxTouchPoints: number }).maxTouchPoints > 1;
+
+  const iOSPlatform = /iPad|iPhone|iPod/.test(platform);
+
+  return isiPhoneLike || isiPadLikeUA || isiPadLikeDesktopUA || iOSPlatform;
+}
+
 export default function InstallButton() {
-  // Android/Desktop: the deferred install prompt event
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIOSHelp, setShowIOSHelp] = useState(false);
-  const [eligible, setEligible] = useState(false); // whether we should render a CTA at all
+  const [eligible, setEligible] = useState(false);
 
-  const isStandalone = useMemo(() => {
-    // Works on iOS and most browsers
-    return (
-      typeof window !== "undefined" &&
-      (window.matchMedia?.("(display-mode: standalone)").matches ||
-        // iOS fallback
-        (window as any).navigator?.standalone === true)
-    );
-  }, []);
-
-  const isIOS = useMemo(() => {
-    if (typeof navigator === "undefined") return false;
-    return /iphone|ipad|ipod/i.test(navigator.userAgent);
-  }, []);
+  const isStandalone = useMemo(getIsStandalone, []);
+  const isIOS = useMemo(getIsIOSWebKit, []);
 
   useEffect(() => {
+    // If already installed, do not show CTA
     if (isStandalone) {
       setEligible(false);
       return;
     }
 
     if (isIOS) {
-      // iOS never fires beforeinstallprompt; show our own CTA
+      // iOS never fires beforeinstallprompt, so show our own CTA
       setEligible(true);
       return;
     }
 
-    // Android/Desktop: wait for beforeinstallprompt
-    const onBIP = (e: BeforeInstallPromptEvent) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    // Android/Desktop flow
+    const onBIP = (e: Event) => {
+      e.preventDefault?.();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setEligible(true);
     };
 
@@ -49,14 +62,12 @@ export default function InstallButton() {
 
   const handleClick = async () => {
     if (isIOS) {
-      // Open instructions for iOS
       setShowIOSHelp(true);
       return;
     }
     if (!deferredPrompt) return;
-    // Android/Desktop install
     await deferredPrompt.prompt();
-    // const result = await deferredPrompt.userChoice; // optional
+    // const choice = await deferredPrompt.userChoice; // optional
     setDeferredPrompt(null);
     setEligible(false);
   };
@@ -74,7 +85,7 @@ export default function InstallButton() {
         Install Fortivo
       </button>
 
-      {/* Simple inline iOS instructions */}
+      {/* iOS instruction sheet */}
       {isIOS && showIOSHelp && (
         <div
           id="ios-install-dialog"
@@ -89,12 +100,12 @@ export default function InstallButton() {
           >
             <h2 className="text-lg font-semibold mb-2">Add Fortivo to Home Screen</h2>
             <ol className="list-decimal list-inside space-y-1 text-sm text-neutral-700">
-              <li>Tap the <span className="font-medium">Share</span> icon in Safari.</li>
-              <li>Scroll and choose <span className="font-medium">Add to Home Screen</span>.</li>
-              <li>Tap <span className="font-medium">Add</span>.</li>
+              <li>Open in <span className="font-medium">Safari</span> (if you aren’t already).</li>
+              <li>Tap the <span className="font-medium">Share</span> icon.</li>
+              <li>Choose <span className="font-medium">Add to Home Screen</span>, then tap <span className="font-medium">Add</span>.</li>
             </ol>
             <p className="text-xs text-neutral-500 mt-3">
-              Tip: This makes Fortivo open full‑screen like an app.
+              Tip: Installed PWAs open full‑screen and behave like native apps.
             </p>
             <div className="mt-4 flex justify-end">
               <button
